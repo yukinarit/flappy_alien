@@ -2,6 +2,7 @@ import itertools
 import random
 import time
 import sound
+import ui
 from scene import *
 
 FPS = 60
@@ -10,6 +11,9 @@ DEBUG = False
 
 
 class GameObject(SpriteNode):
+    """
+    Game Object base class. / ゲームオブジェクト基本クラス
+    """
 
     obj_id = 0
 
@@ -18,19 +22,31 @@ class GameObject(SpriteNode):
         self.id = self.get_new_id()
 
     def collided_with(self, other):
+        """
+        Collision detection. / 衝突判定
+        """
         name = 'collided_with_' + type(other).__name__.lower()
         f = getattr(self, name, None)
         if f:
             f(other)
 
     def update(self):
+        """
+        Called on every game loop. / 毎フレームの更新
+        """
         pass
 
     @property
     def body(self):
+        """
+        Get body size for collision detection. / 衝突判定用の矩形取得
+        """
         return self.frame
 
     def draw_debug_info(self):
+        """
+        Draw object info for debugging. / デバッグ用の情報描画
+        """
         if not DEBUG:
             return
         r = self.body
@@ -38,7 +54,7 @@ class GameObject(SpriteNode):
         shape = ShapeNode(path, fill_color='clear', stroke_color='black', parent=self)
 
         label_id = LabelNode(text=str(self.id), parent=self)
-        #label_coord = LabelNode(text='({},{})'.format(self.frame.x, self.frame.y), parent=self)
+        # label_coord = LabelNode(text='({},{})'.format(self.frame.x, self.frame.y), parent=self)
 
     def get_new_id(self):
         GameObject.obj_id += 1
@@ -46,33 +62,48 @@ class GameObject(SpriteNode):
 
 
 class Player(GameObject):
+    """
+    Game player class. / ゲームプレイヤークラス
+    """
     def __init__(self, *args, **kwargs):
         super(Player, self).__init__(*args, **kwargs)
 
     def collided_with_block(self, other):
-        #print(self, other)
+        """
+        Handler when object gets collided with a brick. / ブロックとの衝突判定
+        """
+        # print(self, other)
         self.remove_from_parent()
 
     @property
     def body(self):
         r = self.frame
-        return Rect(r.x, r.y , r.w - 10, r.h - 50)
+        return Rect(r.x, r.y, r.w - 10, r.h - 50)
 
 
-class Block(GameObject):
+class Brick(GameObject):
+    """
+    Brick object class. / ブロック
+    """
     def __init__(self, *args, **kwargs):
-        super(Block, self).__init__(*args, **kwargs)
+        super(Brick, self).__init__(*args, **kwargs)
 
     def move(self):
-            x = self.position.x
-            y = self.position.y
-            dx, dy = -20, 0
-            self.destination = (x + dx, y + dy)
-            self.run_action(
-                Action.move_by(dx, dy))
+        """
+        Move left. / 左にスクロールする
+        """
+        x = self.position.x
+        y = self.position.y
+        dx, dy = -20, 0
+        self.destination = (x + dx, y + dy)
+        self.run_action(Action.move_by(dx, dy))
 
     def update(self):
-        super(Block, self).update()
+        """
+        Move left agan. Removed when it reaches to the left end. /
+        左端に着くまで左にスクロールする
+        """
+        super(Brick, self).update()
         if self.position == self.destination:
             self.move()
         #print(self.position.x, self.parent.size.w)
@@ -80,24 +111,38 @@ class Block(GameObject):
             self.remove_from_parent()
 
     def __repr__(self):
-        return '[Block] id={}'.format(self.id)
+        return '[Brick] id={}'.format(self.id)
+
 
 class Background(GameObject):
+    """
+    Background image class. / 背景画像オブジェクト
+    """
     def __init__(self, *args, **kwargs):
         super(Background, self).__init__(*args, **kwargs)
 
     def move(self):
-            x = self.position.x
-            y = self.position.y
-            dx, dy = -self.size.w, 0
-            self.destination = (x + dx, y + dy)
-            self.run_action(
-                Action.move_by(dx, dy, 20), 'move')
+        """
+        Move left slowly than bricks.
+        左スクロールする、ブロックより少しゆっくり目。
+        """
+        x = self.position.x
+        y = self.position.y
+        dx, dy = -self.size.w, 0
+        self.destination = (x + dx, y + dy)
+        self.run_action(Action.move_by(dx, dy, 20), 'move')
 
     def update(self):
+        """
+        As it reaches out to the left end, it will go back to the
+        original position (right end) and start scrolling left again
+        so that the background looks contiguous to player.
+        左端に着いたら元いた場所(右端)に戻って左スクロールを再開する。
+        これによって背景画像が
+        """
         super(Background, self).update()
         if self.position == self.destination:
-            #self.move()
+            # self.move()
             x = self.position.x
             w = self.size.w
             self.position = (x + w, self.position.y)
@@ -105,6 +150,9 @@ class Background(GameObject):
 
 
 class Game(Scene):
+    """
+    Game main class. / ゲームメインクラス
+    """
     def setup(self):
         self.background = Background('plf:BG_Colored_grass', parent=self)
         self.background.position = self.size / 2
@@ -132,19 +180,24 @@ class Game(Scene):
         self.last_spawned = 0
 
     def update(self):
+        # Gravity calculation for alien / エイリアンの落下計算
         pos = self.player.position
         pos += (0, -4)
         pos.x = max(0, min(self.size.w, pos.x))
         pos.y = max(0, min(self.size.h, pos.y))
         self.player.position = pos
         now = time.time()
+
+        # Spawn a new brick / 新しいブロックの生成
         if now - self.last_spawned >= (1 / FPS) * 70:
             self.spawn_block()
             self.last_spawned = time.time()
 
+        # Collision calculation / 衝突判定
         self.check_collision(self.player, self.children)
 
-        for o in itertools.chain(self.children):
+        # Update child GameObjects / 子オブジェクトのupdateを呼ぶ
+        for o in itertools.chain(self.children, self.ground.children):
             if isinstance(o, GameObject):
                 o.update()
 
@@ -155,7 +208,7 @@ class Game(Scene):
     def spawn_block(self):
         x = self.size.w
         y = random.randint(0, self.size.y)
-        block = Block('plf:Tile_BoxCrate', position=(x, y), parent=self)
+        block = Brick('plf:Tile_BoxCrate', position=(x, y), parent=self)
         block.draw_debug_info()
         block.move()
 
@@ -165,8 +218,8 @@ class Game(Scene):
         for other in others:
             if not isinstance(other, GameObject):
                 continue
-            parent = other.parent
-            #rect = other.body.translate(*parent.size * parent.anchor_point)
+            # parent = other.parent
+            # rect = other.body.translate(*parent.size * parent.anchor_point)
             rect = other.body
             if obj.body.intersects(rect):
                 obj.collided_with(other)

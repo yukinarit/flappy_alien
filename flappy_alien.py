@@ -202,8 +202,18 @@ class Game(Scene):
                 o.update()
 
     def touch_began(self, touch):
+        self.touch_effect(touch)
         self.player.run_action(Action.move_by(0, 50))
         sound.play_effect('digital:HighUp')
+        
+    def touch_effect(self, touch):
+        effect = SpriteNode('shp:sun', position=touch.location, parent=self, alpha =0.5, x_scale=0.6, y_scale=0.6)
+        def remove_self():
+            nonlocal effect
+            effect.remove_from_parent()
+        effect.run_action(Action.sequence(
+            Action.fade_to(0.0, 0.5),
+            Action.call(remove_self)))
 
     def spawn_block(self):
         x = self.size.w

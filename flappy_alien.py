@@ -68,7 +68,7 @@ class Player(GameObject):
     def __init__(self, *args, **kwargs):
         super(Player, self).__init__(*args, **kwargs)
 
-    def collided_with_block(self, other):
+    def collided_with_brick(self, other):
         """
         Handler when object gets collided with a brick. / ブロックとの衝突判定
         """
@@ -190,7 +190,7 @@ class Game(Scene):
 
         # Spawn a new brick / 新しいブロックの生成
         if now - self.last_spawned >= (1 / FPS) * 70:
-            self.spawn_block()
+            self.spawn_brick()
             self.last_spawned = time.time()
 
         # Collision calculation / 衝突判定
@@ -215,7 +215,7 @@ class Game(Scene):
             Action.fade_to(0.0, 0.5),
             Action.call(remove_self)))
 
-    def spawn_block(self):
+    def spawn_brick(self):
         x = self.size.w
         y = random.randint(0, self.size.y)
         block = Brick('plf:Tile_BoxCrate', position=(x, y), parent=self)

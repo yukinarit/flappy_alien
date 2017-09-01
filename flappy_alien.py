@@ -180,6 +180,9 @@ class Game(Scene):
         self.last_spawned = 0
 
     def update(self):
+        """
+        Update game. / 毎フレームの更新処理
+        """
         # Gravity calculation for alien / エイリアンの落下計算
         pos = self.player.position
         pos += (0, -4)
@@ -202,11 +205,17 @@ class Game(Scene):
                 o.update()
 
     def touch_began(self, touch):
+        """
+        Event handler for screen touch action. /  画面タップのイベントハンドラ
+        """
         self.touch_effect(touch)
         self.player.run_action(Action.move_by(0, 50))
         sound.play_effect('digital:HighUp')
-        
+
     def touch_effect(self, touch):
+        """
+        Display effect on touch location. /  画面タップの場所にエフェクトを表示する
+        """
         effect = SpriteNode('shp:sun', position=touch.location, parent=self, alpha =0.5, x_scale=0.6, y_scale=0.6)
         def remove_self():
             nonlocal effect
@@ -216,6 +225,9 @@ class Game(Scene):
             Action.call(remove_self)))
 
     def spawn_brick(self):
+        """
+        Spawn brick at random location. /  ランダムな位置にブロックを配置する
+        """
         x = self.size.w
         y = random.randint(0, self.size.y)
         block = Brick('plf:Tile_BoxCrate', position=(x, y), parent=self)
@@ -223,6 +235,9 @@ class Game(Scene):
         block.move()
 
     def check_collision(self, obj, others):
+        """
+        Check collision of game objects. / 衝突判定
+        """
         if not isinstance(obj, GameObject):
             return
         for other in others:
